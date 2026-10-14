@@ -4,6 +4,12 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title> Davide vs Matteo — Partite & Spese</title>
+<link rel="apple-touch-icon" href="icon.png">
+<link rel="icon" type="image/png" href="icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Tennis DM">
+<link rel="manifest" href="manifest.json">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore-compat.js"></script>
@@ -201,6 +207,9 @@ select{-webkit-appearance:none;appearance:none;background-image:linear-gradient(
     <div class="card" id="totSpese"></div>
     <div class="h">Elenco spese</div>
     <ul class="list" id="listaSpese"></ul>
+    <button class="ghost" id="exportSpeseBtn">ESPORTA SPESE IN EXCEL</button>
+    <button class="ghost" id="importSpeseBtn">IMPORTA SPESE DA EXCEL</button>
+    <input type="file" id="importSpeseFile" accept=".xlsx,.xls" style="display:none">
   </section>
 
 </div>
@@ -363,7 +372,7 @@ $('salva').onclick=async()=>{
   anteprima(); renderStorico(); toast('Partita salvata ✔');
 };
 
-/* ---------- IMPORT/EXPORT EXCEL ---------- */
+/* ---------- IMPORT/EXPORT EXCEL PARTITE ---------- */
 $('importBtn').onclick=()=>$('importFile').click();
 $('importFile').onchange=async(e)=>{
   const file=e.target.files[0]; if(!file)return;
@@ -437,7 +446,7 @@ function checkDateDuplicate(){
   appData.partite.forEach(p=>{dateCount[p.data]=(dateCount[p.data]||0)+1;});
   const dup=Object.keys(dateCount).filter(d=>dateCount[d]>1);
   if(dup.length){
-    $('alertDate').innerHTML='<div class="alert">⚠ Partite duplicate nelle date: '+dup.map(fData).join(', ')+'</div>';
+    $('alertDate').innerHTML='<div class="alert"> Partite duplicate nelle date: '+dup.map(fData).join(', ')+'</div>';
   } else {
     $('alertDate').innerHTML='';
   }
@@ -745,6 +754,56 @@ $('addSpesa').onclick=async()=>{
   if($('sCat').value==='Altro'&&!nota){toast('Inserisci le note per "Altro"');return;}
   appData.spese.push({id:Date.now(),data,cat:$('sCat').value,imp,who:$('sQui').value,nota});
   await salvaDati(); $('sImp').value=''; $('sNota').value=''; renderSpese(); toast('Spesa aggiunta ✔');
+};
+
+/* ---------- IMPORT/EXPORT EXCEL SPESE ---------- */
+$('importSpeseBtn').onclick=()=>$('importSpeseFile').click();
+$('importSpeseFile').onchange=async(e)=>{
+  const file=e.target.files[0]; if(!file)return;
+  const reader=new FileReader();
+  reader.onload=async(ev)=>{
+    try{
+      const wb=XLSX.read(ev.target.result,{type:'array'});
+      const ws=wb.Sheets[wb.SheetNames[0]];
+      const data=XLSX.utils.sheet_to_json(ws);
+      let count=0;
+      data.forEach(row=>{
+        if(row.Data && row.Voce && row.Importo!==undefined){
+          appData.spese.push({
+            id:Date.now()+count,
+            data:row.Data,
+            cat:row.Voce,
+            imp:parseFloat(row.Importo)||0,
+            who:row['Pagata da']||'divisa',
+            nota:row.Note||''
+          });
+          count++;
+        }
+      });
+      await salvaDati();
+      renderSpese(); toast(count+' spese importate ✔');
+    }catch(err){toast('Errore nel file Excel');}
+  };
+  reader.readAsArrayBuffer(file);
+  e.target.value='';
+};
+
+$('exportSpeseBtn').onclick=()=>{
+  const data=[];
+  appData.spese.forEach(s=>{
+    data.push({
+      Data:s.data,
+      Voce:s.cat,
+      Importo:s.imp,
+      'Pagata da':s.who,
+      Note:s.nota||''
+    });
+  });
+  const ws=XLSX.utils.json_to_sheet(data);
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,'Spese');
+  XLSX.writeFile(wb,'spese_'+oggi()+'.xlsx');
+  toast('Esportato ✔');
 };
 
 /* ---------- avvio ---------- */
