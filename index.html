@@ -252,9 +252,53 @@ const CAT=['Campo','Cena/Aperitivo','Palline','Altro'];
 let appData = {partite:[],spese:[]};
 const $=id=>document.getElementById(id);
 const eur=new Intl.NumberFormat('it-IT',{style:'currency',currency:'EUR'});
-const fData=s=>new Date(s+'T00:00:00').toLocaleDateString('it-IT');
+
+// Helper per gestire le date
+// Interno: YYYY-MM-DD | Display: gg/mm/aaaa
+const fData=s=>{
+  if(!s) return '';
+  // Se è già gg/mm/aaaa
+  if(s.includes('/')) return s;
+  // Se è YYYY-MM-DD
+  const parts=s.split('-');
+  if(parts.length===3) return parts[2]+'/'+parts[1]+'/'+parts[0];
+  return s;
+};
 const oggi=()=>{const t=new Date();return new Date(t-t.getTimezoneOffset()*6e4).toISOString().slice(0,10);};
 function toast(m){const t=$('toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),1800);}
+
+// Converte qualsiasi formato data in YYYY-MM-DD (formato interno)
+function toISODate(val){
+  if(!val) return '';
+  // Se è già YYYY-MM-DD
+  if(typeof val==='string' && /^\d{4}-\d{2}-\d{2}$/.test(val)) return val;
+  // Se è gg/mm/aaaa
+  if(typeof val==='string' && val.includes('/')){
+    const parts=val.split('/');
+    if(parts.length===3){
+      const gg=parts[0].padStart(2,'0');
+      const mm=parts[1].padStart(2,'0');
+      const aaaa=parts[2];
+      return aaaa+'-'+mm+'-'+gg;
+    }
+  }
+  // Se è un oggetto Date
+  if(val instanceof Date){
+    const y=val.getFullYear();
+    const m=String(val.getMonth()+1).padStart(2,'0');
+    const d=String(val.getDate()).padStart(2,'0');
+    return y+'-'+m+'-'+d;
+  }
+  // Se è un numero seriale Excel
+  if(typeof val==='number'){
+    const date=new Date((val-25569)*86400*1000);
+    const y=date.getFullYear();
+    const m=String(date.getMonth()+1).padStart(2,'0');
+    const d=String(date.getDate()).padStart(2,'0');
+    return y+'-'+m+'-'+d;
+  }
+  return '';
+}
 
 // Carica dati da Firebase
 async function caricaDati(){
@@ -262,6 +306,9 @@ async function caricaDati(){
     const doc = await db.collection('appdata').doc('dati').get();
     if(doc.exists){
       appData = doc.data();
+      // Normalizza le date esistenti
+      appData.partite.forEach(p=>{ p.data=toISODate(p.data); });
+      appData.spese.forEach(s=>{ s.data=toISODate(s.data); });
     }
   }catch(e){
     console.error('Errore caricamento:',e);
@@ -379,26 +426,28 @@ $('importFile').onchange=async(e)=>{
   const reader=new FileReader();
   reader.onload=async(ev)=>{
     try{
-      const wb=XLSX.read(ev.target.result,{type:'array'});
+      const wb=XLSX.read(ev.target.result,{type:'array',cellDates:true});
       const ws=wb.Sheets[wb.SheetNames[0]];
       const data=XLSX.utils.sheet_to_json(ws);
       let count=0;
       data.forEach(row=>{
-        if(row.Data && row.Set1_Davide!==undefined && row.Set1_Matteo!==undefined){
+        if(row.Data!==undefined){
+          const dataISO=toISODate(row.Data);
+          if(!dataISO) return;
           const sets=[];
           for(let i=1;i<=3;i++){
             const d=row['Set'+i+'_Davide'], m=row['Set'+i+'_Matteo'];
-            if(d!==undefined && m!==undefined) sets.push({d:+d,m:+m});
+            if(d!==undefined && m!==undefined && d!=='' && m!=='') sets.push({d:+d,m:+m});
           }
           if(sets.length){
-            appData.partite.push({id:Date.now()+count,data:row.Data,sets});
+            appData.partite.push({id:Date.now()+count,data:dataISO,sets});
             count++;
           }
         }
       });
       await salvaDati();
       renderStorico(); toast(count+' partite importate ✔');
-    }catch(err){toast('Errore nel file Excel');}
+    }catch(err){console.error(err);toast('Errore nel file Excel');}
   };
   reader.readAsArrayBuffer(file);
   e.target.value='';
@@ -407,7 +456,7 @@ $('importFile').onchange=async(e)=>{
 $('exportBtn').onclick=()=>{
   const data=[];
   appData.partite.forEach(p=>{
-    const row={Data:p.data};
+    const row={Data:fData(p.data)};
     p.sets.forEach((s,i)=>{
       row['Set'+(i+1)+'_Davide']=s.d;
       row['Set'+(i+1)+'_Matteo']=s.m;
@@ -417,7 +466,7 @@ $('exportBtn').onclick=()=>{
   const ws=XLSX.utils.json_to_sheet(data);
   const wb=XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb,ws,'Partite');
-  XLSX.writeFile(wb,'partite_'+oggi()+'.xlsx');
+  XLSX.writeFile(wb,'partite_'+fData(oggi()).replace(/\//g,'-')+'.xlsx');
   toast('Esportato ✔');
 };
 
@@ -446,7 +495,7 @@ function checkDateDuplicate(){
   appData.partite.forEach(p=>{dateCount[p.data]=(dateCount[p.data]||0)+1;});
   const dup=Object.keys(dateCount).filter(d=>dateCount[d]>1);
   if(dup.length){
-    $('alertDate').innerHTML='<div class="alert"> Partite duplicate nelle date: '+dup.map(fData).join(', ')+'</div>';
+    $('alertDate').innerHTML='<div class="alert">⚠ Partite duplicate nelle date: '+dup.map(fData).join(', ')+'</div>';
   } else {
     $('alertDate').innerHTML='';
   }
@@ -708,7 +757,7 @@ function renderSpese(){
     const li=document.createElement('li');
     if(dupIds.includes(s.id)) li.classList.add('doppio');
     li.innerHTML=`<span><b>${s.cat}</b> — ${eur.format(s.imp)}
-      <small>${fData(s.data)} · ${s.who==='divisa'?'divisa a metà':(s.who==='davide'?'pagata da Davide':'pagata da Matteo')}${s.nota?' · '+s.nota:''}${dupIds.includes(s.id)?' ⚠ DUPLICATA':''}</small></span>
+      <small>${fData(s.data)} · ${s.who==='divisa'?'divisa a metà':(s.who==='davide'?'pagata da Davide':'pagata da Matteo')}${s.nota?' · '+s.nota:''}${dupIds.includes(s.id)?'  DUPLICATA':''}</small></span>
       <div><button class="edit">✎</button><button class="del">×</button></div>`;
     li.querySelector('.edit').onclick=()=>editSpesa(s.id);
     li.querySelector('.del').onclick=async()=>{ appData.spese=appData.spese.filter(x=>x.id!==s.id); await salvaDati(); renderSpese(); };
@@ -763,16 +812,21 @@ $('importSpeseFile').onchange=async(e)=>{
   const reader=new FileReader();
   reader.onload=async(ev)=>{
     try{
-      const wb=XLSX.read(ev.target.result,{type:'array'});
+      const wb=XLSX.read(ev.target.result,{type:'array',cellDates:true});
       const ws=wb.Sheets[wb.SheetNames[0]];
       const data=XLSX.utils.sheet_to_json(ws);
       let count=0;
       data.forEach(row=>{
-        if(row.Data && row.Voce && row.Importo!==undefined){
+        if(row.Data!==undefined && row.Voce!==undefined && row.Importo!==undefined){
+          const dataISO=toISODate(row.Data);
+          if(!dataISO){
+            console.warn('Data non valida saltata:',row.Data);
+            return;
+          }
           appData.spese.push({
             id:Date.now()+count,
-            data:row.Data,
-            cat:row.Voce,
+            data:dataISO,
+            cat:String(row.Voce),
             imp:parseFloat(row.Importo)||0,
             who:row['Pagata da']||'divisa',
             nota:row.Note||''
@@ -782,7 +836,7 @@ $('importSpeseFile').onchange=async(e)=>{
       });
       await salvaDati();
       renderSpese(); toast(count+' spese importate ✔');
-    }catch(err){toast('Errore nel file Excel');}
+    }catch(err){console.error(err);toast('Errore nel file Excel');}
   };
   reader.readAsArrayBuffer(file);
   e.target.value='';
@@ -792,7 +846,7 @@ $('exportSpeseBtn').onclick=()=>{
   const data=[];
   appData.spese.forEach(s=>{
     data.push({
-      Data:s.data,
+      Data:fData(s.data),
       Voce:s.cat,
       Importo:s.imp,
       'Pagata da':s.who,
@@ -802,7 +856,7 @@ $('exportSpeseBtn').onclick=()=>{
   const ws=XLSX.utils.json_to_sheet(data);
   const wb=XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb,ws,'Spese');
-  XLSX.writeFile(wb,'spese_'+oggi()+'.xlsx');
+  XLSX.writeFile(wb,'spese_'+fData(oggi()).replace(/\//g,'-')+'.xlsx');
   toast('Esportato ✔');
 };
 
