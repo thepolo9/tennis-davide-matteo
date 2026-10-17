@@ -781,7 +781,6 @@ function calcolaStatisticheServizio(){
   let srvDavVinti=0, srvDavTotali=0;
   let srvMatVinti=0, srvMatTotali=0;
   let brkDav=0, brkMat=0;
-  let tbDav=0, tbMat=0;
   let setTracciati=0;
   
   appData.partite.forEach(p=>{
@@ -792,32 +791,19 @@ function calcolaStatisticheServizio(){
       setTracciati++;
       
       let serverCorrente=t.serverIniziale;
-      let gameDav=0, gameMat=0;
       
-      // Giochi normali
       t.sequenza.forEach(vincitore=>{
         if(serverCorrente==='davide'){
           srvDavTotali++;
-          if(vincitore==='davide'){ srvDavVinti++; gameDav++; }
-          else { brkMat++; gameMat++; }
+          if(vincitore==='davide'){ srvDavVinti++; }
+          else { brkMat++; }
         } else {
           srvMatTotali++;
-          if(vincitore==='matteo'){ srvMatVinti++; gameMat++; }
-          else { brkDav++; gameDav++; }
+          if(vincitore==='matteo'){ srvMatVinti++; }
+          else { brkDav++; }
         }
         serverCorrente = serverCorrente==='davide'?'matteo':'davide';
       });
-      
-      // Tie-break
-      if(t.tiebreak && t.tiebreak.punti && t.tiebreak.punti.length>0){
-        const vincitoreTiebreak=t.tiebreak.punti[t.tiebreak.punti.length-1] || 
-          (t.tiebreak.punti.filter(x=>x==='davide').length > t.tiebreak.punti.filter(x=>x==='matteo').length ? 'davide':'matteo');
-        // Il tie-break conta come un game: chi lo vince guadagna un game
-        // Ma il servizio nel tie-break non conta come "game al servizio" tradizionale
-        // Per semplicità, lo conteggio come game vinto dal vincitore
-        if(vincitoreTiebreak==='davide'){ tbDav++; gameDav++; }
-        else { tbMat++; gameMat++; }
-      }
     });
   });
   
@@ -828,11 +814,10 @@ function calcolaStatisticheServizio(){
   $('stat_srv_mat').textContent=srvMatTotali>0?pctMat+'%':'—';
   $('stat_brk_dav').textContent=brkDav;
   $('stat_brk_mat').textContent=brkMat;
-  $('stat_tb_dav').textContent=tbDav;
-  $('stat_tb_mat').textContent=tbMat;
+  $('stat_tb_dav').textContent='—';
+  $('stat_tb_mat').textContent='—';
   $('stat_tracked').textContent=setTracciati;
 }
-
 $('sCat').innerHTML=CAT.map(c=>`<option>${c}</option>`).join('');
 
 $('toggleSpese').onclick=()=>{
@@ -982,13 +967,12 @@ $('exportSpeseBtn').onclick=()=>{
 
 /* ==================== TRACCIAMENTO GAME PER GAME ==================== */
 
-let trackState = null; // stato temporaneo del tracciamento
+let trackState = null;
 
 function apriTracciamento(partitaId){
   const p=appData.partite.find(x=>x.id===partitaId);
   if(!p) return;
   
-  // Mostra lista dei set tracciabili
   let html='<p style="color:var(--mut);font-size:13px;margin-bottom:12px">Seleziona un set da tracciare:</p>';
   p.sets.forEach((s,i)=>{
     const setNum=i+1;
@@ -1017,7 +1001,6 @@ function startTracking(partitaId, setNum){
   const set=p.sets[setNum-1];
   if(!set) return;
   
-  // Recupera tracciamento esistente o inizializza
   if(!p.tracking) p.tracking={};
   if(!p.tracking[setNum]) p.tracking[setNum]={};
   const existing=p.tracking[setNum];
@@ -1027,74 +1010,43 @@ function startTracking(partitaId, setNum){
     setNum,
     set,
     serverIniziale: existing.serverIniziale || 'davide',
-    sequenza: existing.sequenza ? [...existing.sequenza] : [],
-    tiebreak: existing.tiebreak ? {punti:[...existing.tiebreak.punti], serverIniziale:existing.tiebreak.serverIniziale||'davide'} : null,
-    inTiebreak: false
+    sequenza: existing.sequenza ? [...existing.sequenza] : []
   };
   
   renderTrackUI();
 }
 
 function renderTrackUI(){
-  const {setNum, set, serverIniziale, sequenza, tiebreak, inTiebreak} = trackState;
-  const p=appData.partite.find(x=>x.id===trackState.partitaId);
+  const {setNum, set, serverIniziale, sequenza} = trackState;
   
   // Calcola punteggio game corrente
-  let gameDav=0, gameMat=0;
-  sequenza.forEach(v=>{ if(v==='davide') gameDav++; else gameMat++; });
+  let gameDav=sequenza.filter(x=>x==='davide').length;
+  let gameMat=sequenza.filter(x=>x==='matteo').length;
   
-  // Determina server corrente
-  let serverCorrente=serverIniziale;
+  // Determina server del PROSSIMO game
+  let serverProssimo=serverIniziale;
   for(let i=0;i<sequenza.length;i++){
-    if(i>0) serverCorrente = serverCorrente==='davide'?'matteo':'davide';
-  }
-  // Nel tiebreak il server cambia con logica diversa
-  if(inTiebreak && tiebreak){
-    // Server del tiebreak: chi avrebbe servito nel game successivo
-    serverCorrente = tiebreak.serverIniziale;
-    const nPunti=tiebreak.punti.length;
-    if(nPunti>0){
-      // Dopo il primo punto, cambia ogni 2
-      const blocchi=Math.floor((nPunti)/2);
-      serverCorrente = blocchi%2===0 ? tiebreak.serverIniziale : (tiebreak.serverIniziale==='davide'?'matteo':'davide');
-    }
+    serverProssimo = serverProssimo==='davide'?'matteo':'davide';
   }
   
-  const isTiebreakMode = gameDav===6 && gameMat===6 && !inTiebreak;
-  const setFinale = inTiebreak ? 'TIE-BREAK' : `${gameDav}-${gameMat}`;
   const targetD=set.d, targetM=set.m;
-  const reachedTarget = inTiebreak ? 
-    (tiebreak.punti.length>0 && checkTiebreakVinto(tiebreak.punti)) :
-    (gameDav===targetD && gameMat===targetM);
+  const reachedTarget = gameDav===targetD && gameMat===targetM;
   
   let html='';
   
-  if(inTiebreak){
-    html+=`<div class="tiebreak-badge">TIE-BREAK</div>`;
-    const ptsDav=tiebreak.punti.filter(x=>x==='davide').length;
-    const ptsMat=tiebreak.punti.filter(x=>x==='matteo').length;
-    html+=`<div class="track-score">
-      <span class="dav">${ptsDav}</span>
-      <span class="sep">:</span>
-      <span class="mat">${ptsMat}</span>
-    </div>`;
-    html+=`<div class="track-server">🎾 Serve: <b class="${serverCorrente==='davide'?'davT':'matT'}">${serverCorrente==='davide'?'DAVIDE':'MATTEO'}</b></div>`;
-    html+=`<div class="track-info">
-      <div class="row"><span>Game:</span><span><span class="davT">${gameDav}</span> - <span class="matT">${gameMat}</span></span></div>
-      <div class="row"><span>Vince a 7 (con 2 di scarto)</span></div>
-    </div>`;
-  } else {
-    html+=`<div class="track-score">
-      <span class="dav">${gameDav}</span>
-      <span class="sep">:</span>
-      <span class="mat">${gameMat}</span>
-    </div>`;
-    html+=`<div class="track-server">🎾 Serve: <b class="${serverCorrente==='davide'?'davT':'matT'}">${serverCorrente==='davide'?'DAVIDE':'MATTEO'}</b></div>`;
-    html+=`<div class="track-info">
-      <div class="row"><span>Target:</span><span><span class="davT">${targetD}</span> - <span class="matT">${targetM}</span></span></div>
-      <div class="row"><span>Server iniziale:</span><span class="${serverIniziale==='davide'?'davT':'matT'}">${serverIniziale==='davide'?'Davide':'Matteo'}</span></div>
-    </div>`;
-  }
+  html+=`<div class="track-score">
+    <span class="dav">${gameDav}</span>
+    <span class="sep">:</span>
+    <span class="mat">${gameMat}</span>
+  </div>`;
+  
+  html+=`<div class="track-server">🎾 Prossimo servizio: <b class="${serverProssimo==='davide'?'davT':'matT'}">${serverProssimo==='davide'?'DAVIDE':'MATTEO'}</b></div>`;
+  
+  html+=`<div class="track-info">
+    <div class="row"><span>Target:</span><span><span class="davT">${targetD}</span> - <span class="matT">${targetM}</span></span></div>
+    <div class="row"><span>Server iniziale:</span><span class="${serverIniziale==='davide'?'davT':'matT'}">${serverIniziale==='davide'?'Davide':'Matteo'}</span></div>
+    <div class="row"><span>Game giocati:</span><span>${sequenza.length}</span></div>
+  </div>`;
   
   // Pulsanti game
   if(!reachedTarget){
@@ -1108,20 +1060,20 @@ function renderTrackUI(){
   
   // Pulsanti azione
   html+=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px">`;
-  if(sequenza.length>0 || (inTiebreak && tiebreak.punti.length>0)){
+  if(sequenza.length>0){
     html+=`<button class="ghost" onclick="undoLast()">↶ Annulla ultimo</button>`;
   } else {
-    html+=`<button class="ghost" disabled style="opacity:.3"> Annulla ultimo</button>`;
+    html+=`<button class="ghost" disabled style="opacity:.3">↶ Annulla ultimo</button>`;
   }
   if(reachedTarget){
     html+=`<button class="btn" onclick="salvaTracking()" style="margin-top:0"> Salva tracciamento</button>`;
   } else {
-    html+=`<button class="ghost" disabled style="opacity:.3"> Salva (completa prima)</button>`;
+    html+=`<button class="ghost" disabled style="opacity:.3">💾 Salva (completa prima)</button>`;
   }
   html+=`</div>`;
   
   // Cambio server iniziale (solo se non ci sono game)
-  if(sequenza.length===0 && !inTiebreak){
+  if(sequenza.length===0){
     html+=`<div style="margin-top:12px">
       <label class="lbl">Chi ha servito per primo?</label>
       <div class="grid2">
@@ -1136,64 +1088,13 @@ function renderTrackUI(){
 }
 
 function addGame(vincitore){
-  const {setNum, set, sequenza, inTiebreak, tiebreak} = trackState;
-  let gameDav=sequenza.filter(x=>x==='davide').length;
-  let gameMat=sequenza.filter(x=>x==='matteo').length;
-  
-  if(inTiebreak){
-    // Aggiungi punto al tiebreak
-    tiebreak.punti.push(vincitore);
-    // Controlla se il tiebreak è vinto
-    if(checkTiebreakVinto(tiebreak.punti)){
-      // Tiebreak vinto, il set è finito
-      renderTrackUI();
-    } else {
-      renderTrackUI();
-    }
-  } else {
-    // Aggiungi game alla sequenza
-    sequenza.push(vincitore);
-    gameDav=sequenza.filter(x=>x==='davide').length;
-    gameMat=sequenza.filter(x=>x==='matteo').length;
-    
-    // Controlla se si entra in tiebreak
-    if(gameDav===6 && gameMat===6){
-      // Entra in modalità tiebreak
-      trackState.inTiebreak=true;
-      // Chi serve il primo punto del tiebreak? 
-      // Regola: chi NON ha servito per primo nel set (quindi chi avrebbe servito nel game 13)
-      const serverTiebreak = trackState.serverIniziale==='davide'?'matteo':'davide';
-      trackState.tiebreak = {punti:[], serverIniziale:serverTiebreak};
-    }
-    
-    renderTrackUI();
-  }
-}
-
-function checkTiebreakVinto(punti){
-  const d=punti.filter(x=>x==='davide').length;
-  const m=punti.filter(x=>x==='matteo').length;
-  if(d>=7 && d-m>=2) return true;
-  if(m>=7 && m-d>=2) return true;
-  return false;
+  trackState.sequenza.push(vincitore);
+  renderTrackUI();
 }
 
 function undoLast(){
-  const {sequenza, inTiebreak, tiebreak} = trackState;
-  if(inTiebreak && tiebreak.punti.length>0){
-    tiebreak.punti.pop();
-    // Se il tiebreak è vuoto, esce dalla modalità tiebreak
-    if(tiebreak.punti.length===0){
-      trackState.inTiebreak=false;
-      trackState.tiebreak=null;
-    }
-  } else if(sequenza.length>0){
-    sequenza.pop();
-    // Se eravamo in tiebreak ma abbiamo annullato tutto, esce
-    if(trackState.inTiebreak && tiebreak && tiebreak.punti.length===0){
-      trackState.inTiebreak=false;
-      trackState.tiebreak=null;
-    }
+  if(trackState.sequenza.length>0){
+    trackState.sequenza.pop();
   }
   renderTrackUI();
 }
@@ -1204,34 +1105,23 @@ function setServerIniziale(server){
 }
 
 async function salvaTracking(){
-  const {partitaId, setNum, set, serverIniziale, sequenza, tiebreak, inTiebreak} = trackState;
+  const {partitaId, setNum, set, serverIniziale, sequenza} = trackState;
   const p=appData.partite.find(x=>x.id===partitaId);
   if(!p) return;
   
-  // Verifica che il punteggio corrisponda
   const gameDav=sequenza.filter(x=>x==='davide').length;
   const gameMat=sequenza.filter(x=>x==='matteo').length;
   
-  if(inTiebreak){
-    // Il set deve finire 7-6
-    if(set.d!==7 || set.m!==6){
-      if(!confirm(`Il set è tracciato come tie-break (7-6) ma il punteggio finale è ${set.d}-${set.m}. Salvare comunque?`)){
-        return;
-      }
-    }
-  } else {
-    if(gameDav!==set.d || gameMat!==set.m){
-      if(!confirm(`Il tracciamento (${gameDav}-${gameMat}) non corrisponde al punteggio finale (${set.d}-${set.m}). Salvare comunque?`)){
-        return;
-      }
+  if(gameDav!==set.d || gameMat!==set.m){
+    if(!confirm(`Il tracciamento (${gameDav}-${gameMat}) non corrisponde al punteggio finale (${set.d}-${set.m}). Salvare comunque?`)){
+      return;
     }
   }
   
   if(!p.tracking) p.tracking={};
   p.tracking[setNum] = {
     serverIniziale,
-    sequenza:[...sequenza],
-    tiebreak: tiebreak ? {punti:[...tiebreak.punti], serverIniziale:tiebreak.serverIniziale} : null
+    sequenza:[...sequenza]
   };
   
   await salvaDati();
@@ -1259,7 +1149,7 @@ function viewSequenza(partitaId, setNum){
   let serverCorrente=t.serverIniziale;
   let gameD=0, gameM=0;
   t.sequenza.forEach((v,i)=>{
-    const srvIcon = serverCorrente==='davide'?'D':'🎾M';
+    const srvIcon = serverCorrente==='davide'?'🎾D':'🎾M';
     const vincitoreClass = v==='davide'?'davT':'matT';
     if(v==='davide') gameD++; else gameM++;
     html+=`<div class="seq-item">
@@ -1268,28 +1158,6 @@ function viewSequenza(partitaId, setNum){
     </div>`;
     serverCorrente = serverCorrente==='davide'?'matteo':'davide';
   });
-  
-  if(t.tiebreak && t.tiebreak.punti.length>0){
-    html+=`<div class="seq-item" style="background:rgba(200,255,0,.1);font-weight:700">
-      <span>TIE-BREAK</span>
-      <span class="srv">🎾</span>
-    </div>`;
-    let ptsD=0, ptsM=0;
-    let tbServer=t.tiebreak.serverIniziale;
-    t.tiebreak.punti.forEach((v,i)=>{
-      const srvIcon = tbServer==='davide'?'🎾D':'🎾M';
-      const vincitoreClass = v==='davide'?'davT':'matT';
-      if(v==='davide') ptsD++; else ptsM++;
-      html+=`<div class="seq-item">
-        <span>Punto ${i+1}: <span class="${vincitoreClass}"><b>${v==='davide'?'Davide':'Matteo'}</b></span></span>
-        <span class="srv">${srvIcon} ${ptsD}-${ptsM}</span>
-      </div>`;
-      // Cambio server tiebreak
-      if(i===0) tbServer = tbServer==='davide'?'matteo':'davide';
-      else if((i+1)%2===0) tbServer = tbServer==='davide'?'matteo':'davide';
-    });
-  }
-  
   html+=`</div>`;
   html+=`<button class="ghost" onclick="apriTracciamento(${partitaId})" style="margin-top:12px">← Torna ai set</button>`;
   
@@ -1304,7 +1172,7 @@ function closeModalTrack(){
 }
 
 $('trackCancel').onclick=()=>{
-  if(trackState && (trackState.sequenza.length>0 || (trackState.tiebreak && trackState.tiebreak.punti.length>0))){
+  if(trackState && trackState.sequenza.length>0){
     if(confirm('Hai un tracciamento in corso. Uscire senza salvare?')){
       closeModalTrack();
     }
@@ -1314,10 +1182,3 @@ $('trackCancel').onclick=()=>{
 };
 
 $('viewClose').onclick=()=>$('modalView').classList.remove('on');
-
-$('data').value=oggi(); $('sData').value=oggi();
-anteprima();
-caricaDati();
-</script>
-</body>
-</html>
