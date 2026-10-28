@@ -17,21 +17,22 @@
 <style>
 :root{
   /* Tema Scuro (default) */
-  --bg:#1a1a2e;
-  --card:#16213e;
-  --card-border:#0f3460;
-  --inp:#0f3460;
-  --txt:#ffffff;
-  --txt-secondary:#a0aec0;
-  --mut:#718096;
-  --dav:#d946ef;
-  --dav-glow:rgba(217,70,239,0.3);
-  --mat:#ec4899;
-  --mat-glow:rgba(236,72,153,0.3);
+  --bg:#0f172a;
+  --card:#1e293b;
+  --card-border:#334155;
+  --inp:#1e293b;
+  --txt:#f8fafc;
+  --txt-secondary:#94a3b8;
+  --mut:#64748b;
+  --dav:#3b82f6;
+  --dav-dark:#1d4ed8;
+  --mat:#d946ef;
+  --mat-dark:#a21caf;
   --ok:#10b981;
-  --ok-glow:rgba(16,185,129,0.3);
+  --tab-on:#065f46;
+  --tab-off:#064e3b;
   --bad:#ef4444;
-  --line:#1e293b;
+  --line:#334155;
   --shadow:0 4px 20px rgba(0,0,0,0.4);
   --shadow-lg:0 8px 32px rgba(0,0,0,0.6);
 }
@@ -45,12 +46,13 @@ body.light{
   --txt:#1e293b;
   --txt-secondary:#64748b;
   --mut:#94a3b8;
-  --dav:#c026d3;
-  --dav-glow:rgba(192,38,211,0.15);
-  --mat:#db2777;
-  --mat-glow:rgba(219,39,119,0.15);
+  --dav:#2563eb;
+  --dav-dark:#1e40af;
+  --mat:#c026d3;
+  --mat-dark:#86198f;
   --ok:#059669;
-  --ok-glow:rgba(5,150,105,0.15);
+  --tab-on:#10b981;
+  --tab-off:#047857;
   --bad:#dc2626;
   --line:#e2e8f0;
   --shadow:0 4px 20px rgba(0,0,0,0.08);
@@ -78,7 +80,7 @@ header h1 span{color:var(--mut);font-size:16px;font-weight:600}
 input,select,button{font-family:inherit}
 input,select{width:100%;height:52px;background:var(--inp);border:2px solid var(--card-border);color:var(--txt);
   border-radius:14px;padding:0 16px;font-size:17px;font-weight:600}
-input:focus,select:focus{outline:none;border-color:var(--dav);box-shadow:0 0 0 3px var(--dav-glow)}
+input:focus,select:focus{outline:none;border-color:var(--dav);box-shadow:0 0 0 3px rgba(59,130,246,0.2)}
 select{-webkit-appearance:none;appearance:none;background-image:linear-gradient(45deg,transparent 50%,var(--mut) 50%),linear-gradient(135deg,var(--mut) 50%,transparent 50%);
   background-position:calc(100% - 22px) 24px,calc(100% - 16px) 24px;background-size:7px 7px;background-repeat:no-repeat}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
@@ -94,15 +96,15 @@ select{-webkit-appearance:none;appearance:none;background-image:linear-gradient(
 .btn{width:100%;height:56px;border:0;border-radius:14px;
   background:linear-gradient(135deg, var(--dav) 0%, var(--mat) 100%);
   color:#fff;font-size:16px;font-weight:800;letter-spacing:0.5px;margin-top:6px;
-  box-shadow:0 4px 18px var(--dav-glow);
+  box-shadow:0 4px 18px rgba(59,130,246,0.2);
   transition:all 0.2s ease}
 .btn:active{opacity:.9;transform:scale(0.98)}
 .ghost{width:100%;background:transparent;border:2px solid var(--card-border);color:var(--txt-secondary);border-radius:14px;height:46px;margin-top:10px;font-weight:700;font-size:15px}
 .ghost:active{opacity:.7;background:var(--inp)}
 .stats{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .scard{border-radius:18px;padding:18px;border:2px solid var(--card-border);box-shadow:var(--shadow)}
-.scard.dav{background:linear-gradient(135deg, rgba(217,70,239,0.12) 0%, rgba(217,70,239,0.02) 100%);border-color:rgba(217,70,239,0.3)}
-.scard.mat{background:linear-gradient(135deg, rgba(236,72,153,0.12) 0%, rgba(236,72,153,0.02) 100%);border-color:rgba(236,72,153,0.3)}
+.scard.dav{background:linear-gradient(135deg, rgba(59,130,246,0.12) 0%, rgba(59,130,246,0.02) 100%);border-color:rgba(59,130,246,0.3)}
+.scard.mat{background:linear-gradient(135deg, rgba(217,70,239,0.12) 0%, rgba(217,70,239,0.02) 100%);border-color:rgba(217,70,239,0.3)}
 .scard h3{margin:0 0 12px;font-size:15px;letter-spacing:0.5px;font-weight:900}
 .scard .row{display:flex;justify-content:space-between;font-size:14px;padding:7px 0;border-top:2px solid var(--line)}
 .scard .row b{font-size:20px;font-weight:900}
@@ -121,7 +123,7 @@ select{-webkit-appearance:none;appearance:none;background-image:linear-gradient(
 .tabs{position:fixed;bottom:0;left:0;right:0;display:flex;background:var(--card);border-top:2px solid var(--card-border);z-index:20;box-shadow:0 -4px 20px rgba(0,0,0,0.2)}
 .tabs button{flex:1;height:70px;background:none;border:0;color:var(--mut);font-size:14px;font-weight:800;letter-spacing:0.5px;position:relative}
 .tabs button.on{color:var(--txt)}
-.tabs button.on::after{content:'';position:absolute;top:0;left:50%;transform:translateX(-50%);width:40px;height:4px;background:linear-gradient(90deg, var(--dav), var(--mat));border-radius:0 0 4px 4px}
+.tabs button.on::after{content:'';position:absolute;top:0;left:50%;transform:translateX(-50%);width:40px;height:4px;background:linear-gradient(90deg, var(--tab-on), var(--tab-off));border-radius:0 0 4px 4px}
 .tab{display:none;animation:fadeIn 0.3s ease} .tab.on{display:block}
 @keyframes fadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
 .mut{color:var(--mut)}
@@ -135,8 +137,8 @@ select{-webkit-appearance:none;appearance:none;background-image:linear-gradient(
 .stat-row b{font-size:18px;font-weight:900}
 .barra{height:22px;background:var(--inp);border-radius:11px;overflow:hidden;margin:12px 0;position:relative;border:2px solid var(--card-border)}
 .barra-fill{height:100%;transition:width .3s}
-.barra-dav{background:linear-gradient(90deg, var(--dav), var(--mat))}
-.barra-mat{background:linear-gradient(90deg, var(--mat), var(--dav))}
+.barra-dav{background:linear-gradient(90deg, var(--dav), var(--dav-dark))}
+.barra-mat{background:linear-gradient(90deg, var(--mat), var(--mat-dark))}
 .barra-label{position:absolute;top:50%;transform:translateY(-50%);font-size:12px;font-weight:800;padding:0 10px}
 .barra-label.left{left:0}
 .barra-label.right{right:0}
@@ -162,12 +164,12 @@ select{-webkit-appearance:none;appearance:none;background-image:linear-gradient(
 .track-score .dav{color:var(--dav)}
 .track-score .mat{color:var(--mat)}
 .track-score .sep{color:var(--mut);font-size:40px}
-.track-server{background:linear-gradient(135deg, rgba(217,70,239,0.12), rgba(236,72,153,0.12));color:var(--txt);padding:12px 20px;border-radius:14px;font-size:14px;font-weight:800;text-align:center;margin:14px 0;border:2px solid var(--card-border)}
+.track-server{background:linear-gradient(135deg, rgba(59,130,246,0.12), rgba(217,70,239,0.12));color:var(--txt);padding:12px 20px;border-radius:14px;font-size:14px;font-weight:800;text-align:center;margin:14px 0;border:2px solid var(--card-border)}
 .track-btns{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:18px 0}
 .track-btn{height:72px;border:0;border-radius:16px;font-size:18px;font-weight:800;color:#fff;cursor:pointer;
   transition:all 0.2s ease}
-.track-btn.dav{background:linear-gradient(135deg, var(--dav), #a855f7);box-shadow:0 4px 18px var(--dav-glow)}
-.track-btn.mat{background:linear-gradient(135deg, var(--mat), #f472b6);box-shadow:0 4px 18px var(--mat-glow)}
+.track-btn.dav{background:linear-gradient(135deg, var(--dav), var(--dav-dark));box-shadow:0 4px 18px rgba(59,130,246,0.3)}
+.track-btn.mat{background:linear-gradient(135deg, var(--mat), var(--mat-dark));box-shadow:0 4px 18px rgba(217,70,239,0.3)}
 .track-btn:active{opacity:.9;transform:scale(0.95)}
 .track-btn:disabled{opacity:.3;cursor:not-allowed}
 .track-info{background:var(--inp);border-radius:16px;padding:16px;margin:14px 0;font-size:14px;border:2px solid var(--card-border)}
@@ -201,7 +203,7 @@ select{-webkit-appearance:none;appearance:none;background-image:linear-gradient(
   border-radius:50%;
   margin-left:7px;
   vertical-align:middle;
-  box-shadow:0 0 10px var(--ok-glow);
+  box-shadow:0 0 10px rgba(16,185,129,0.4);
 }
 .tracked-dot.all-sets{
   width:10px;
@@ -420,7 +422,7 @@ const themeToggle=$('themeToggle');
 const savedTheme=localStorage.getItem('theme');
 if(savedTheme==='light'){
   document.body.classList.add('light');
-  themeToggle.textContent='';
+  themeToggle.textContent='🌙';
 }
 themeToggle.onclick=()=>{
   document.body.classList.toggle('light');
@@ -1206,7 +1208,7 @@ function apriTracciamento(partitaId){
   p.sets.forEach((s,i)=>{
     const setNum=i+1;
     const hasTracking=p.tracking && p.tracking[setNum] && p.tracking[setNum].sequenza && p.tracking[setNum].sequenza.length>0;
-    const btnText=hasTracking?'️ Modifica tracciamento':'🎾 Traccia game';
+    const btnText=hasTracking?' Modifica tracciamento':'🎾 Traccia game';
     const viewBtn=hasTracking?`<button class="ghost" onclick="viewSequenza(${partitaId},${setNum})" style="margin-top:8px">👁️ Vedi sequenza</button>`:'';
     html+=`<div class="card" style="margin-bottom:10px">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
