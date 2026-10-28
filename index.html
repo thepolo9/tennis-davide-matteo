@@ -243,18 +243,6 @@ select{-webkit-appearance:none;appearance:none;background-image:linear-gradient(
   </section>
 
   <section id="tab-statistiche" class="tab">
-    <!-- Statistiche di servizio PRIMA -->
-    <div class="stat-card" id="cardServizio">
-      <h4><svg class="tennis-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2v20"/></svg> Statistiche di servizio</h4>
-      <div class="stat-row"><span class="davT">% servizio vinto (Davide)</span><b id="stat_srv_dav">—</b></div>
-      <div class="stat-row"><span class="matT">% servizio vinto (Matteo)</span><b id="stat_srv_mat">—</b></div>
-      <div class="stat-row"><span class="davT">Break fatti (Davide)</span><b id="stat_brk_dav">0</b></div>
-      <div class="stat-row"><span class="matT">Break fatti (Matteo)</span><b id="stat_brk_mat">0</b></div>
-      <div class="mut" style="font-size:12px;margin-top:12px;text-align:center;font-weight:600">Basato su <b id="stat_tracked">0</b> set tracciati</div>
-    </div>
-
-    <!-- SPAZIO tra card servizio e riquadri nomi -->
-    <div style="height:20px"></div>
 
     <!-- Riquadri nomi -->
     <div class="stats">
@@ -268,6 +256,19 @@ select{-webkit-appearance:none;appearance:none;background-image:linear-gradient(
         <div class="row"><span>Set vinti</span><b id="m_s">0</b></div>
         <div class="row"><span>Punti fatti</span><b id="m_pts">0</b></div>
       </div>
+    </div>
+
+    <!-- SPAZIO tra card servizio e riquadri nomi -->
+    <div style="height:20px"></div>
+
+    <!-- Statistiche di servizio PRIMA -->
+    <div class="stat-card" id="cardServizio">
+      <h4><svg class="tennis-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2v20"/></svg> Statistiche di servizio</h4>
+      <div class="stat-row"><span class="davT">% servizio vinto (Davide)</span><b id="stat_srv_dav">—</b></div>
+      <div class="stat-row"><span class="matT">% servizio vinto (Matteo)</span><b id="stat_srv_mat">—</b></div>
+      <div class="stat-row"><span class="davT">Break fatti (Davide)</span><b id="stat_brk_dav">0</b></div>
+      <div class="stat-row"><span class="matT">Break fatti (Matteo)</span><b id="stat_brk_mat">0</b></div>
+      <div class="mut" style="font-size:12px;margin-top:12px;text-align:center;font-weight:600">Basato su <b id="stat_tracked">0</b> set tracciati</div>
     </div>
 
     <!-- SPAZIO prima di testa a testa -->
