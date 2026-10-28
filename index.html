@@ -14,7 +14,34 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore-compat.js"></script>
-<style>
+/* Indicatore set tracciato */
+.tracked-dot{
+  display:inline-block;
+  width:8px;
+  height:8px;
+  background:var(--ok);
+  border-radius:50%;
+  margin-left:6px;
+  vertical-align:middle;
+  box-shadow:0 0 6px rgba(52,199,89,0.5);
+}
+.tracked-dot.all-sets{
+  width:10px;
+  height:10px;
+  margin-left:8px;
+}
+.set-tracked-border{
+  border-left:3px solid var(--ok) !important;
+  padding-left:10px !important;
+}
+.track-label{
+  font-size:10px;
+  color:var(--ok);
+  font-weight:700;
+  text-transform:uppercase;
+  letter-spacing:0.5px;
+}
+  <style>
 :root{
   --bg:#f2f2f7;
   --card:#ffffff;
@@ -621,21 +648,40 @@ function renderStorico(){
   const l=$('listaPartite'); l.innerHTML='';
   [...appData.partite].sort((a,b)=>b.data.localeCompare(a.data)).forEach(p=>{
     let sd=0,sm=0;
+    let trackedCount=0;
     p.sets.forEach((x,i)=>{
       if(setCompletato(x.d,x.m)){
         if(x.d>x.m) sd++;
         else if(x.m>x.d) sm++;
         else if(i===0){ sd++; sm++; }
       }
+      // Conta set tracciati
+      if(p.tracking && p.tracking[i+1] && p.tracking[i+1].sequenza && p.tracking[i+1].sequenza.length>0){
+        trackedCount++;
+      }
     });
+    
+    // Mostra i punteggi con pallini per i set tracciati
+    const setsDisplay=p.sets.map((x,i)=>{
+      const isTracked=p.tracking && p.tracking[i+1] && p.tracking[i+1].sequenza && p.tracking[i+1].sequenza.length>0;
+      return x.d+'-'+x.m+(isTracked?'<span class="tracked-dot" title="Set tracciato"></span>':'');
+    }).join(' , ');
+    
+    // Se tutti i set sono tracciati, aggiungi indicatore anche sul risultato
+    const allTracked=trackedCount===p.sets.length && p.sets.length>0;
+    const winnerText=sd>sm?'Davide':sm>sd?'Matteo':'Pareggio';
+    const winnerClass=sd>sm?'davT':sm>sd?'matT':'mut';
+    
     const li=document.createElement('li');
-    li.innerHTML=`<span><b>${sd>sm?'Davide':sm>sd?'Matteo':'Pareggio'}</b> ${Math.max(sd,sm)}-${Math.min(sd,sm)}
-      <small>${fData(p.data)} · ${p.sets.map(x=>x.d+'-'+x.m).join(' , ')}</small></span>
-      <div>
-        <button class="edit" title="Modifica">✎</button>
-        <button class="track" title="Traccia game">🎾</button>
-        <button class="del" title="Elimina">×</button>
-      </div>`;
+    li.innerHTML=`<span>
+      <b class="${winnerClass}">${winnerText}</b> ${Math.max(sd,sm)}-${Math.min(sd,sm)}${allTracked?'<span class="tracked-dot all-sets" title="Tutti i set tracciati"></span>':''}
+      <small>${fData(p.data)} · ${setsDisplay}</small>
+    </span>
+    <div>
+      <button class="edit" title="Modifica">✎</button>
+      <button class="track" title="Traccia game">🎾</button>
+      <button class="del" title="Elimina">×</button>
+    </div>`;
     li.onclick=(e)=>{
       if(!e.target.classList.contains('edit') && !e.target.classList.contains('track') && !e.target.classList.contains('del')){
         mostraDettagli(p.id);
@@ -655,7 +701,6 @@ function renderStorico(){
   });
   if(!appData.partite.length) l.innerHTML='<li class="mut">Nessuna partita registrata</li>';
 }
-
 function mostraDettagli(partitaId){
   const p=appData.partite.find(x=>x.id===partitaId);
   if(!p) return;
@@ -689,52 +734,51 @@ function mostraDettagli(partitaId){
   
   html+=`<h4 style="margin:16px 0 8px;font-size:13px;font-weight:700;color:var(--mut);text-transform:uppercase">Dettagli Set</h4>`;
   
-  p.sets.forEach((s,i)=>{
-    const setNum=i+1;
-    const hasTracking=p.tracking && p.tracking[setNum] && p.tracking[setNum].sequenza && p.tracking[setNum].sequenza.length>0;
+p.sets.forEach((s,i)=>{
+  const setNum=i+1;
+  const hasTracking=p.tracking && p.tracking[setNum] && p.tracking[setNum].sequenza && p.tracking[setNum].sequenza.length>0;
+  
+  html+=`<div class="set-detail ${hasTracking?'set-tracked-border':''}">
+    <div class="set-title">
+      <span>SET ${setNum} ${hasTracking?'<span class="track-label">✓ Tracciato</span>':''}</span>
+      <span class="set-score"><span class="davT">${s.d}</span> - <span class="matT">${s.m}</span></span>
+    </div>`;
+  
+  if(hasTracking){
+    const t=p.tracking[setNum];
+    let srvDavVinti=0, srvDavTotali=0, srvMatVinti=0, srvMatTotali=0;
+    let brkDav=0, brkMat=0;
+    let serverCorrente=t.serverIniziale;
     
-    html+=`<div class="set-detail">
-      <div class="set-title">
-        <span>SET ${setNum}</span>
-        <span class="set-score"><span class="davT">${s.d}</span> - <span class="matT">${s.m}</span></span>
-      </div>`;
+    t.sequenza.forEach(vincitore=>{
+      if(serverCorrente==='davide'){
+        srvDavTotali++;
+        if(vincitore==='davide') srvDavVinti++;
+        else brkMat++;
+      } else {
+        srvMatTotali++;
+        if(vincitore==='matteo') srvMatVinti++;
+        else brkDav++;
+      }
+      serverCorrente = serverCorrente==='davide'?'matteo':'davide';
+    });
     
-    if(hasTracking){
-      const t=p.tracking[setNum];
-      let srvDavVinti=0, srvDavTotali=0, srvMatVinti=0, srvMatTotali=0;
-      let brkDav=0, brkMat=0;
-      let serverCorrente=t.serverIniziale;
-      
-      t.sequenza.forEach(vincitore=>{
-        if(serverCorrente==='davide'){
-          srvDavTotali++;
-          if(vincitore==='davide') srvDavVinti++;
-          else brkMat++;
-        } else {
-          srvMatTotali++;
-          if(vincitore==='matteo') srvMatVinti++;
-          else brkDav++;
-        }
-        serverCorrente = serverCorrente==='davide'?'matteo':'davide';
-      });
-      
-      const pctDav=srvDavTotali>0?Math.round((srvDavVinti/srvDavTotali)*100):0;
-      const pctMat=srvMatTotali>0?Math.round((srvMatVinti/srvMatTotali)*100):0;
-      
-      html+=`<div class="set-stats">
-        <div class="row"><span class="tracked-badge">TRACCIATO</span></div>
-        <div class="row"><span class="davT">% servizio vinto (Davide)</span><b>${pctDav}%</b></div>
-        <div class="row"><span class="matT">% servizio vinto (Matteo)</span><b>${pctMat}%</b></div>
-        <div class="row"><span class="davT">Break fatti (Davide)</span><b>${brkDav}</b></div>
-        <div class="row"><span class="matT">Break fatti (Matteo)</span><b>${brkMat}</b></div>
-        <div class="row"><span>Game totali</span><b>${t.sequenza.length}</b></div>
-      </div>`;
-    } else {
-      html+=`<div class="not-tracked">Non tracciato</div>`;
-    }
+    const pctDav=srvDavTotali>0?Math.round((srvDavVinti/srvDavTotali)*100):0;
+    const pctMat=srvMatTotali>0?Math.round((srvMatVinti/srvMatTotali)*100):0;
     
-    html+=`</div>`;
-  });
+    html+=`<div class="set-stats">
+      <div class="row"><span class="davT">% servizio vinto</span><b>${pctDav}%</b></div>
+      <div class="row"><span class="matT">% servizio vinto</span><b>${pctMat}%</b></div>
+      <div class="row"><span class="davT">Break fatti</span><b>${brkDav}</b></div>
+      <div class="row"><span class="matT">Break fatti</span><b>${brkMat}</b></div>
+      <div class="row"><span>Game totali</span><b>${t.sequenza.length}</b></div>
+    </div>`;
+  } else {
+    html+=`<div class="not-tracked">Non tracciato</div>`;
+  }
+  
+  html+=`</div>`;
+});
   
   $('dettagliBody').innerHTML=html;
   $('modalDettagli').classList.add('on');
