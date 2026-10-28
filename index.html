@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title> Davide vs Matteo — Partite & Spese</title>
-<link rel="apple-touch-icon" href="icon-tennis.png">
-<link rel="icon" type="image/png" href="icon-tennis.png">
+<link rel="apple-touch-icon" href="icon.png">
+<link rel="icon" type="image/png" href="icon.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Tennis DM">
@@ -16,7 +16,6 @@
 <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore-compat.js"></script>
 <style>
 :root{
-  /* Tema Chiaro (default) */
   --bg:#f2f2f7;
   --card:#ffffff;
   --inp:#f2f2f7;
@@ -32,7 +31,6 @@
 }
 
 body.dark{
-  /* Tema Scuro */
   --bg:#000000;
   --card:#1c1c1e;
   --inp:#2c2c2e;
@@ -94,8 +92,8 @@ select{-webkit-appearance:none;appearance:none;background-image:linear-gradient(
   margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:14px;box-shadow:var(--shadow)}
 .list li.doppio{border-color:var(--bad);background:rgba(255,59,48,.05)}
 .list small{color:var(--mut);display:block;font-size:12px}
-.del,.edit,.track,.view{background:none;border:0;font-size:18px;padding:0 4px}
-.del{color:var(--bad)} .edit{color:var(--dav)} .track{color:var(--ok)} .view{color:var(--mat)}
+.del,.edit,.track,.view,.stats{background:none;border:0;font-size:18px;padding:0 4px}
+.del{color:var(--bad)} .edit{color:var(--dav)} .track{color:var(--ok)} .view{color:var(--mat)} .stats{color:var(--dav)}
 .tot{display:flex;justify-content:space-between;font-size:14px;padding:5px 0}
 .tot b{font-size:18px;font-weight:700}
 .tabs{position:fixed;bottom:0;left:0;right:0;display:flex;background:rgba(255,255,255,0.8);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-top:1px solid var(--line);z-index:20}
@@ -155,6 +153,15 @@ body.dark .tabs{background:rgba(28,28,30,0.8)}
 .seq-list .seq-item{padding:4px 8px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between}
 .seq-list .seq-item:last-child{border-bottom:0}
 .seq-list .seq-item .srv{color:var(--mut);font-size:10px}
+
+/* Statistiche dettagliate partita */
+.set-stats{margin-top:12px;padding-top:12px;border-top:1px solid var(--line)}
+.set-stats h4{font-size:12px;color:var(--mut);margin:10px 0 8px;text-transform:uppercase}
+.set-stat-row{display:flex;justify-content:space-between;padding:4px 0;font-size:13px}
+.set-stat-row b{font-weight:700}
+.stat-badge{display:inline-block;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:700;margin-left:6px}
+.stat-badge.dav{background:var(--dav);color:#fff}
+.stat-badge.mat{background:var(--mat);color:#fff}
 </style>
 </head>
 <body>
@@ -305,6 +312,15 @@ body.dark .tabs{background:rgba(28,28,30,0.8)}
   </div>
 </div>
 
+<!-- Modal statistiche dettagliate partita -->
+<div class="modal" id="modalPartitaStats">
+  <div class="modal-content">
+    <h3 id="statsTitle">Statistiche Partita</h3>
+    <div id="statsBody"></div>
+    <button class="btn" id="statsClose" style="margin-top:12px">CHIUDI</button>
+  </div>
+</div>
+
 <!-- Modal tracciamento game -->
 <div class="modal" id="modalTrack">
   <div class="modal-content">
@@ -327,12 +343,12 @@ body.dark .tabs{background:rgba(28,28,30,0.8)}
 
 <script>
 const firebaseConfig = {
-  apiKey: "AIzaSyCtpvMPNOdrnTUX-Xp_vzQknAjvkqvp9CQ",
-  authDomain: "tennis-davide-matteo.firebaseapp.com",
-  projectId: "tennis-davide-matteo",
-  storageBucket: "tennis-davide-matteo.firebasestorage.app",
-  messagingSenderId: "754701665253",
-  appId: "1:754701665253:web:64f99c319b6b03570aa50c"
+  apiKey: "METTI_QUI_LA_TUA_API_KEY",
+  authDomain: "METTI_QUI_IL_TUO_AUTH_DOMAIN",
+  projectId: "METTI_QUI_IL_TUO_PROJECT_ID",
+  storageBucket: "METTI_QUI_IL_TUO_STORAGE_BUCKET",
+  messagingSenderId: "METTI_QUI_IL_TUO_MESSAGING_SENDER_ID",
+  appId: "METTI_QUI_IL_TUO_APP_ID"
 };
 
 firebase.initializeApp(firebaseConfig);
@@ -594,6 +610,114 @@ function checkDateDuplicate(){
   }
 }
 
+function calcolaStatisticheSet(tracking, setPunteggio){
+  if(!tracking || !tracking.sequenza || tracking.sequenza.length===0) return null;
+  
+  let srvDavVinti=0, srvDavTotali=0;
+  let srvMatVinti=0, srvMatTotali=0;
+  let brkDav=0, brkMat=0;
+  let serverCorrente=tracking.serverIniziale;
+  
+  tracking.sequenza.forEach(vincitore=>{
+    if(serverCorrente==='davide'){
+      srvDavTotali++;
+      if(vincitore==='davide'){ srvDavVinti++; }
+      else { brkMat++; }
+    } else {
+      srvMatTotali++;
+      if(vincitore==='matteo'){ srvMatVinti++; }
+      else { brkDav++; }
+    }
+    serverCorrente = serverCorrente==='davide'?'matteo':'davide';
+  });
+  
+  const pctDav=srvDavTotali>0?Math.round((srvDavVinti/srvDavTotali)*100):0;
+  const pctMat=srvMatTotali>0?Math.round((srvMatVinti/srvMatTotali)*100):0;
+  
+  return {
+    srvDavVinti, srvDavTotali, srvMatVinti, srvMatTotali,
+    brkDav, brkMat, pctDav, pctMat
+  };
+}
+
+function mostraStatistichePartita(partitaId){
+  const p=appData.partite.find(x=>x.id===partitaId);
+  if(!p) return;
+  
+  $('statsTitle').textContent=`Statistiche - ${fData(p.data)}`;
+  
+  let html=`<div style="margin-bottom:16px;text-align:center">`;
+  let sd=0,sm=0;
+  p.sets.forEach((x,i)=>{
+    if(setCompletato(x.d,x.m)){
+      if(x.d>x.m) sd++;
+      else if(x.m>x.d) sm++;
+    }
+  });
+  const vincitore=sd>sm?'Davide':sm>sd?'Matteo':'Pareggio';
+  const vincitoreClass=sd>sm?'davT':sm>sd?'matT':'mut';
+  html+=`<div style="font-size:18px;font-weight:800;margin-bottom:8px" class="${vincitoreClass}">${vincitore} vince ${Math.max(sd,sm)}-${Math.min(sd,sm)}</div>`;
+  html+=`<div style="font-size:14px;color:var(--mut)">${p.sets.map((s,i)=>`Set ${i+1}: ${s.d}-${s.m}`).join(' • ')}</div>`;
+  html+=`</div>`;
+  
+  // Statistiche per ogni set
+  p.sets.forEach((set, idx)=>{
+    const setNum=idx+1;
+    const tracking=p.tracking[setNum];
+    const stats=calcolaStatisticheSet(tracking, set);
+    
+    html+=`<div class="set-stats">
+      <h4>SET ${setNum} (${set.d}-${set.m})</h4>`;
+    
+    if(stats){
+      html+=`
+        <div class="set-stat-row"><span>% Servizio vinto (Davide)</span><b class="davT">${stats.pctDav}%</b></div>
+        <div class="set-stat-row"><span>% Servizio vinto (Matteo)</span><b class="matT">${stats.pctMat}%</b></div>
+        <div class="set-stat-row"><span>Break fatti (Davide)</span><b class="davT">${stats.brkDav}</b></div>
+        <div class="set-stat-row"><span>Break fatti (Matteo)</span><b class="matT">${stats.brkMat}</b></div>
+        <div class="set-stat-row" style="margin-top:8px;padding-top:8px;border-top:1px dashed var(--line)">
+          <span>Game totali</span><b>${stats.srvDavTotali + stats.srvMatTotali}</b>
+        </div>`;
+    } else {
+      html+=`<div class="mut" style="text-align:center;font-size:12px;padding:8px">Nessun tracciamento disponibile per questo set</div>`;
+    }
+    
+    html+=`</div>`;
+  });
+  
+  // Totali partita
+  let totaleStats={srvDavVinti:0,srvDavTotali:0,srvMatVinti:0,srvMatTotali:0,brkDav:0,brkMat:0};
+  let setTracciati=0;
+  p.sets.forEach((set, idx)=>{
+    const stats=calcolaStatisticheSet(p.tracking[idx+1], set);
+    if(stats){
+      setTracciati++;
+      totaleStats.srvDavVinti+=stats.srvDavVinti;
+      totaleStats.srvDavTotali+=stats.srvDavTotali;
+      totaleStats.srvMatVinti+=stats.srvMatVinti;
+      totaleStats.srvMatTotali+=stats.srvMatTotali;
+      totaleStats.brkDav+=stats.brkDav;
+      totaleStats.brkMat+=stats.brkMat;
+    }
+  });
+  
+  if(setTracciati>0){
+    const totPctDav=totaleStats.srvDavTotali>0?Math.round((totaleStats.srvDavVinti/totaleStats.srvDavTotali)*100):0;
+    const totPctMat=totaleStats.srvMatTotali>0?Math.round((totaleStats.srvMatVinti/totaleStats.srvMatTotali)*100):0;
+    
+    html+=`<div class="set-stats" style="margin-top:16px;padding:12px;background:var(--inp);border-radius:16px">
+      <h4 style="text-align:center;margin-bottom:12px">📊 TOTALI PARTITA</h4>
+      <div class="set-stat-row"><span>% Servizio vinto (Davide)</span><b class="davT">${totPctDav}%</b></div>
+      <div class="set-stat-row"><span>% Servizio vinto (Matteo)</span><b class="matT">${totPctMat}%</b></div>
+      <div class="set-stat-row"><span>Break fatti (Davide)</span><b class="davT">${totaleStats.brkDav}</b></div>
+      <div class="set-stat-row"><span>Break fatti (Matteo)</span><b class="matT">${totaleStats.brkMat}</b></div>
+    </div>`;
+  }
+  
+  $('statsBody').innerHTML=html;
+  $('modalPartitaStats').classList.add('on');
+}
+
 function renderStorico(){
   checkDateDuplicate();
   $('totPartite').textContent=appData.partite.length;
@@ -614,10 +738,12 @@ function renderStorico(){
     li.innerHTML=`<span><b>${sd>sm?'Davide':sm>sd?'Matteo':'Pareggio'}</b> ${Math.max(sd,sm)}-${Math.min(sd,sm)}
       <small>${fData(p.data)} · ${p.sets.map(x=>x.d+'-'+x.m).join(' , ')}</small></span>
       <div>
+        <button class="stats" title="Statistiche">📊</button>
         <button class="edit" title="Modifica">✎</button>
         <button class="track" title="Traccia game">🎾</button>
         <button class="del" title="Elimina">×</button>
       </div>`;
+    li.querySelector('.stats').onclick=()=>mostraStatistichePartita(p.id);
     li.querySelector('.edit').onclick=()=>editPartita(p.id);
     li.querySelector('.track').onclick=()=>apriTracciamento(p.id);
     li.querySelector('.del').onclick=async()=>{ if(confirm('Eliminare questa partita?')){ appData.partite=appData.partite.filter(x=>x.id!==p.id); await salvaDati(); renderStorico(); } };
@@ -665,6 +791,7 @@ function editPartita(id){
   };
 }
 $('modalCancel').onclick=()=>$('modal').classList.remove('on');
+$('statsClose').onclick=()=>$('modalPartitaStats').classList.remove('on');
 
 $('reset').onclick=async()=>{ if(confirm('Cancellare TUTTI i dati (partite e spese)?')){ appData={partite:[],spese:[]}; await salvaDati(); renderStorico(); renderSpese(); } };
 
