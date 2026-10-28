@@ -643,7 +643,7 @@ function renderStorico(){
     };
     li.querySelector('.edit').onclick=(e)=>{e.stopPropagation();editPartita(p.id);};
     li.querySelector('.track').onclick=(e)=>{e.stopPropagation();apriTracciamento(p.id);};
-    li.querySelector('.del').onclick=(e)=>{e.stopPropagation();if(confirm('Eliminare questa partita?')){ appData.partite=appData.partite.filter(x=>x.id!==p.id); await salvaDati(); renderStorico(); }};
+    li.querySelector('.del').onclick=async(e)=>{e.stopPropagation();if(confirm('Eliminare questa partita?')){ appData.partite=appData.partite.filter(x=>x.id!==p.id); await salvaDati(); renderStorico(); }};
     l.appendChild(li);
   });
   if(!appData.partite.length) l.innerHTML='<li class="mut">Nessuna partita registrata</li>';
