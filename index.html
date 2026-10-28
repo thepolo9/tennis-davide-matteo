@@ -29,7 +29,6 @@
   --shadow:0 4px 20px rgba(0,0,0,0.05);
   --shadow-lg:0 8px 32px rgba(0,0,0,0.08);
 }
-
 body.dark{
   --bg:#000000;
   --card:#1c1c1e;
@@ -44,7 +43,6 @@ body.dark{
   --shadow:0 4px 20px rgba(0,0,0,0.3);
   --shadow-lg:0 8px 32px rgba(0,0,0,0.5);
 }
-
 *{box-sizing:border-box;transition:background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease}
 body{margin:0;background:var(--bg);color:var(--txt);padding-bottom:96px;
   font-family:'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
@@ -56,7 +54,6 @@ header h1 span{color:var(--mut);font-size:14px}
 .theme-toggle{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:6px 12px;cursor:pointer;font-size:18px;box-shadow:var(--shadow)}
 .theme-toggle:hover{transform:scale(1.05)}
 .theme-toggle:active{transform:scale(0.95)}
-
 .card{background:var(--card);border:1px solid var(--line);border-radius:24px;padding:14px;margin-bottom:12px;box-shadow:var(--shadow)}
 .lbl{display:block;font-size:11px;letter-spacing:1px;color:var(--mut);margin-bottom:6px;text-transform:uppercase;font-weight:600}
 input,select,button{font-family:inherit}
@@ -89,11 +86,12 @@ select{-webkit-appearance:none;appearance:none;background-image:linear-gradient(
 .h{font-size:12px;letter-spacing:1px;color:var(--mut);margin:18px 0 8px;text-transform:uppercase;font-weight:600}
 .list{list-style:none;margin:0;padding:0}
 .list li{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:10px 12px;
-  margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:14px;box-shadow:var(--shadow)}
+  margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:14px;box-shadow:var(--shadow);cursor:pointer}
+.list li:active{transform:scale(0.98)}
 .list li.doppio{border-color:var(--bad);background:rgba(255,59,48,.05)}
 .list small{color:var(--mut);display:block;font-size:12px}
-.del,.edit,.track,.view,.stats{background:none;border:0;font-size:18px;padding:0 4px}
-.del{color:var(--bad)} .edit{color:var(--dav)} .track{color:var(--ok)} .view{color:var(--mat)} .stats{color:var(--dav)}
+.del,.edit,.track,.view{background:none;border:0;font-size:18px;padding:0 4px}
+.del{color:var(--bad)} .edit{color:var(--dav)} .track{color:var(--ok)} .view{color:var(--mat)}
 .tot{display:flex;justify-content:space-between;font-size:14px;padding:5px 0}
 .tot b{font-size:18px;font-weight:700}
 .tabs{position:fixed;bottom:0;left:0;right:0;display:flex;background:rgba(255,255,255,0.8);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-top:1px solid var(--line);z-index:20}
@@ -154,14 +152,20 @@ body.dark .tabs{background:rgba(28,28,30,0.8)}
 .seq-list .seq-item:last-child{border-bottom:0}
 .seq-list .seq-item .srv{color:var(--mut);font-size:10px}
 
-/* Statistiche dettagliate partita */
-.set-stats{margin-top:12px;padding-top:12px;border-top:1px solid var(--line)}
-.set-stats h4{font-size:12px;color:var(--mut);margin:10px 0 8px;text-transform:uppercase}
-.set-stat-row{display:flex;justify-content:space-between;padding:4px 0;font-size:13px}
-.set-stat-row b{font-weight:700}
-.stat-badge{display:inline-block;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:700;margin-left:6px}
-.stat-badge.dav{background:var(--dav);color:#fff}
-.stat-badge.mat{background:var(--mat);color:#fff}
+/* Stili dettagli partita */
+.match-header{text-align:center;padding:16px 0;border-bottom:1px solid var(--line);margin-bottom:16px}
+.match-header .winner{font-size:20px;font-weight:800;font-family:'Montserrat', sans-serif;margin-bottom:8px}
+.match-header .score{font-size:36px;font-weight:900;font-family:'Montserrat', sans-serif}
+.match-header .date{color:var(--mut);font-size:13px;margin-top:4px}
+.set-detail{background:var(--inp);border-radius:16px;padding:12px;margin-bottom:12px;border:1px solid var(--line)}
+.set-detail .set-title{font-weight:700;font-size:14px;margin-bottom:8px;display:flex;justify-content:space-between}
+.set-detail .set-score{font-size:24px;font-weight:800;font-family:'Montserrat', sans-serif}
+.set-detail .set-stats{font-size:12px;color:var(--mut);margin-top:8px}
+.set-detail .set-stats .row{display:flex;justify-content:space-between;padding:2px 0}
+.set-detail .tracked-badge{background:var(--ok);color:#fff;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:700}
+.set-detail .not-tracked{color:var(--mut);font-style:italic;font-size:12px}
+.match-stats-summary{background:var(--inp);border-radius:16px;padding:12px;margin-top:16px;border:1px solid var(--line)}
+.match-stats-summary h4{margin:0 0 8px;font-size:13px;font-weight:700;color:var(--mut);text-transform:uppercase}
 </style>
 </head>
 <body>
@@ -312,12 +316,11 @@ body.dark .tabs{background:rgba(28,28,30,0.8)}
   </div>
 </div>
 
-<!-- Modal statistiche dettagliate partita -->
-<div class="modal" id="modalPartitaStats">
+<!-- Modal dettagli partita -->
+<div class="modal" id="modalDettagli">
   <div class="modal-content">
-    <h3 id="statsTitle">Statistiche Partita</h3>
-    <div id="statsBody"></div>
-    <button class="btn" id="statsClose" style="margin-top:12px">CHIUDI</button>
+    <div id="dettagliBody"></div>
+    <button class="btn" id="dettagliClose">CHIUDI</button>
   </div>
 </div>
 
@@ -361,7 +364,6 @@ let speseVisibili = true;
 const $=id=>document.getElementById(id);
 const eur=new Intl.NumberFormat('it-IT',{style:'currency',currency:'EUR'});
 
-// Gestione tema
 const themeToggle=$('themeToggle');
 const savedTheme=localStorage.getItem('theme');
 if(savedTheme==='dark'){
@@ -604,118 +606,10 @@ function checkDateDuplicate(){
   appData.partite.forEach(p=>{dateCount[p.data]=(dateCount[p.data]||0)+1;});
   const dup=Object.keys(dateCount).filter(d=>dateCount[d]>1);
   if(dup.length){
-    $('alertDate').innerHTML='<div class="alert">⚠ Partite duplicate nelle date: '+dup.map(fData).join(', ')+'</div>';
+    $('alertDate').innerHTML='<div class="alert"> Partite duplicate nelle date: '+dup.map(fData).join(', ')+'</div>';
   } else {
     $('alertDate').innerHTML='';
   }
-}
-
-function calcolaStatisticheSet(tracking, setPunteggio){
-  if(!tracking || !tracking.sequenza || tracking.sequenza.length===0) return null;
-  
-  let srvDavVinti=0, srvDavTotali=0;
-  let srvMatVinti=0, srvMatTotali=0;
-  let brkDav=0, brkMat=0;
-  let serverCorrente=tracking.serverIniziale;
-  
-  tracking.sequenza.forEach(vincitore=>{
-    if(serverCorrente==='davide'){
-      srvDavTotali++;
-      if(vincitore==='davide'){ srvDavVinti++; }
-      else { brkMat++; }
-    } else {
-      srvMatTotali++;
-      if(vincitore==='matteo'){ srvMatVinti++; }
-      else { brkDav++; }
-    }
-    serverCorrente = serverCorrente==='davide'?'matteo':'davide';
-  });
-  
-  const pctDav=srvDavTotali>0?Math.round((srvDavVinti/srvDavTotali)*100):0;
-  const pctMat=srvMatTotali>0?Math.round((srvMatVinti/srvMatTotali)*100):0;
-  
-  return {
-    srvDavVinti, srvDavTotali, srvMatVinti, srvMatTotali,
-    brkDav, brkMat, pctDav, pctMat
-  };
-}
-
-function mostraStatistichePartita(partitaId){
-  const p=appData.partite.find(x=>x.id===partitaId);
-  if(!p) return;
-  
-  $('statsTitle').textContent=`Statistiche - ${fData(p.data)}`;
-  
-  let html=`<div style="margin-bottom:16px;text-align:center">`;
-  let sd=0,sm=0;
-  p.sets.forEach((x,i)=>{
-    if(setCompletato(x.d,x.m)){
-      if(x.d>x.m) sd++;
-      else if(x.m>x.d) sm++;
-    }
-  });
-  const vincitore=sd>sm?'Davide':sm>sd?'Matteo':'Pareggio';
-  const vincitoreClass=sd>sm?'davT':sm>sd?'matT':'mut';
-  html+=`<div style="font-size:18px;font-weight:800;margin-bottom:8px" class="${vincitoreClass}">${vincitore} vince ${Math.max(sd,sm)}-${Math.min(sd,sm)}</div>`;
-  html+=`<div style="font-size:14px;color:var(--mut)">${p.sets.map((s,i)=>`Set ${i+1}: ${s.d}-${s.m}`).join(' • ')}</div>`;
-  html+=`</div>`;
-  
-  // Statistiche per ogni set
-  p.sets.forEach((set, idx)=>{
-    const setNum=idx+1;
-    const tracking=p.tracking[setNum];
-    const stats=calcolaStatisticheSet(tracking, set);
-    
-    html+=`<div class="set-stats">
-      <h4>SET ${setNum} (${set.d}-${set.m})</h4>`;
-    
-    if(stats){
-      html+=`
-        <div class="set-stat-row"><span>% Servizio vinto (Davide)</span><b class="davT">${stats.pctDav}%</b></div>
-        <div class="set-stat-row"><span>% Servizio vinto (Matteo)</span><b class="matT">${stats.pctMat}%</b></div>
-        <div class="set-stat-row"><span>Break fatti (Davide)</span><b class="davT">${stats.brkDav}</b></div>
-        <div class="set-stat-row"><span>Break fatti (Matteo)</span><b class="matT">${stats.brkMat}</b></div>
-        <div class="set-stat-row" style="margin-top:8px;padding-top:8px;border-top:1px dashed var(--line)">
-          <span>Game totali</span><b>${stats.srvDavTotali + stats.srvMatTotali}</b>
-        </div>`;
-    } else {
-      html+=`<div class="mut" style="text-align:center;font-size:12px;padding:8px">Nessun tracciamento disponibile per questo set</div>`;
-    }
-    
-    html+=`</div>`;
-  });
-  
-  // Totali partita
-  let totaleStats={srvDavVinti:0,srvDavTotali:0,srvMatVinti:0,srvMatTotali:0,brkDav:0,brkMat:0};
-  let setTracciati=0;
-  p.sets.forEach((set, idx)=>{
-    const stats=calcolaStatisticheSet(p.tracking[idx+1], set);
-    if(stats){
-      setTracciati++;
-      totaleStats.srvDavVinti+=stats.srvDavVinti;
-      totaleStats.srvDavTotali+=stats.srvDavTotali;
-      totaleStats.srvMatVinti+=stats.srvMatVinti;
-      totaleStats.srvMatTotali+=stats.srvMatTotali;
-      totaleStats.brkDav+=stats.brkDav;
-      totaleStats.brkMat+=stats.brkMat;
-    }
-  });
-  
-  if(setTracciati>0){
-    const totPctDav=totaleStats.srvDavTotali>0?Math.round((totaleStats.srvDavVinti/totaleStats.srvDavTotali)*100):0;
-    const totPctMat=totaleStats.srvMatTotali>0?Math.round((totaleStats.srvMatVinti/totaleStats.srvMatTotali)*100):0;
-    
-    html+=`<div class="set-stats" style="margin-top:16px;padding:12px;background:var(--inp);border-radius:16px">
-      <h4 style="text-align:center;margin-bottom:12px">📊 TOTALI PARTITA</h4>
-      <div class="set-stat-row"><span>% Servizio vinto (Davide)</span><b class="davT">${totPctDav}%</b></div>
-      <div class="set-stat-row"><span>% Servizio vinto (Matteo)</span><b class="matT">${totPctMat}%</b></div>
-      <div class="set-stat-row"><span>Break fatti (Davide)</span><b class="davT">${totaleStats.brkDav}</b></div>
-      <div class="set-stat-row"><span>Break fatti (Matteo)</span><b class="matT">${totaleStats.brkMat}</b></div>
-    </div>`;
-  }
-  
-  $('statsBody').innerHTML=html;
-  $('modalPartitaStats').classList.add('on');
 }
 
 function renderStorico(){
@@ -738,19 +632,108 @@ function renderStorico(){
     li.innerHTML=`<span><b>${sd>sm?'Davide':sm>sd?'Matteo':'Pareggio'}</b> ${Math.max(sd,sm)}-${Math.min(sd,sm)}
       <small>${fData(p.data)} · ${p.sets.map(x=>x.d+'-'+x.m).join(' , ')}</small></span>
       <div>
-        <button class="stats" title="Statistiche">📊</button>
         <button class="edit" title="Modifica">✎</button>
         <button class="track" title="Traccia game">🎾</button>
         <button class="del" title="Elimina">×</button>
       </div>`;
-    li.querySelector('.stats').onclick=()=>mostraStatistichePartita(p.id);
-    li.querySelector('.edit').onclick=()=>editPartita(p.id);
-    li.querySelector('.track').onclick=()=>apriTracciamento(p.id);
-    li.querySelector('.del').onclick=async()=>{ if(confirm('Eliminare questa partita?')){ appData.partite=appData.partite.filter(x=>x.id!==p.id); await salvaDati(); renderStorico(); } };
+    li.onclick=(e)=>{
+      if(!e.target.classList.contains('edit') && !e.target.classList.contains('track') && !e.target.classList.contains('del')){
+        mostraDettagli(p.id);
+      }
+    };
+    li.querySelector('.edit').onclick=(e)=>{e.stopPropagation();editPartita(p.id);};
+    li.querySelector('.track').onclick=(e)=>{e.stopPropagation();apriTracciamento(p.id);};
+    li.querySelector('.del').onclick=(e)=>{e.stopPropagation();if(confirm('Eliminare questa partita?')){ appData.partite=appData.partite.filter(x=>x.id!==p.id); await salvaDati(); renderStorico(); }};
     l.appendChild(li);
   });
   if(!appData.partite.length) l.innerHTML='<li class="mut">Nessuna partita registrata</li>';
 }
+
+function mostraDettagli(partitaId){
+  const p=appData.partite.find(x=>x.id===partitaId);
+  if(!p) return;
+  
+  let sd=0,sm=0;
+  let ptsDav=0,ptsMat=0;
+  p.sets.forEach((x,i)=>{
+    ptsDav+=x.d; ptsMat+=x.m;
+    if(setCompletato(x.d,x.m)){
+      if(x.d>x.m) sd++;
+      else if(x.m>x.d) sm++;
+      else if(i===0){ sd++; sm++; }
+    }
+  });
+  
+  const vincitore = sd>sm?'Davide':sm>sd?'Matteo':'Pareggio';
+  const vincitoreClass = sd>sm?'davT':sm>sd?'matT':'mut';
+  
+  let html=`<div class="match-header">
+    <div class="winner ${vincitoreClass}">${vincitore.toUpperCase()} VINCE</div>
+    <div class="score"><span class="davT">${sd}</span> - <span class="matT">${sm}</span></div>
+    <div class="date">${fData(p.data)} · ${p.sets.map(x=>x.d+'-'+x.m).join(' , ')}</div>
+  </div>`;
+  
+  html+=`<div class="match-stats-summary">
+    <h4>Riepilogo Partita</h4>
+    <div class="stat-row"><span class="davT">Punti totali Davide</span><b>${ptsDav}</b></div>
+    <div class="stat-row"><span class="matT">Punti totali Matteo</span><b>${ptsMat}</b></div>
+    <div class="stat-row"><span>Differenza</span><b>${Math.abs(ptsDav-ptsMat)}</b></div>
+  </div>`;
+  
+  html+=`<h4 style="margin:16px 0 8px;font-size:13px;font-weight:700;color:var(--mut);text-transform:uppercase">Dettagli Set</h4>`;
+  
+  p.sets.forEach((s,i)=>{
+    const setNum=i+1;
+    const hasTracking=p.tracking && p.tracking[setNum] && p.tracking[setNum].sequenza && p.tracking[setNum].sequenza.length>0;
+    
+    html+=`<div class="set-detail">
+      <div class="set-title">
+        <span>SET ${setNum}</span>
+        <span class="set-score"><span class="davT">${s.d}</span> - <span class="matT">${s.m}</span></span>
+      </div>`;
+    
+    if(hasTracking){
+      const t=p.tracking[setNum];
+      let srvDavVinti=0, srvDavTotali=0, srvMatVinti=0, srvMatTotali=0;
+      let brkDav=0, brkMat=0;
+      let serverCorrente=t.serverIniziale;
+      
+      t.sequenza.forEach(vincitore=>{
+        if(serverCorrente==='davide'){
+          srvDavTotali++;
+          if(vincitore==='davide') srvDavVinti++;
+          else brkMat++;
+        } else {
+          srvMatTotali++;
+          if(vincitore==='matteo') srvMatVinti++;
+          else brkDav++;
+        }
+        serverCorrente = serverCorrente==='davide'?'matteo':'davide';
+      });
+      
+      const pctDav=srvDavTotali>0?Math.round((srvDavVinti/srvDavTotali)*100):0;
+      const pctMat=srvMatTotali>0?Math.round((srvMatVinti/srvMatTotali)*100):0;
+      
+      html+=`<div class="set-stats">
+        <div class="row"><span class="tracked-badge">TRACCIATO</span></div>
+        <div class="row"><span class="davT">% servizio vinto (Davide)</span><b>${pctDav}%</b></div>
+        <div class="row"><span class="matT">% servizio vinto (Matteo)</span><b>${pctMat}%</b></div>
+        <div class="row"><span class="davT">Break fatti (Davide)</span><b>${brkDav}</b></div>
+        <div class="row"><span class="matT">Break fatti (Matteo)</span><b>${brkMat}</b></div>
+        <div class="row"><span>Game totali</span><b>${t.sequenza.length}</b></div>
+      </div>`;
+    } else {
+      html+=`<div class="not-tracked">Non tracciato</div>`;
+    }
+    
+    html+=`</div>`;
+  });
+  
+  $('dettagliBody').innerHTML=html;
+  $('modalDettagli').classList.add('on');
+}
+
+$('dettagliClose').onclick=()=>$('modalDettagli').classList.remove('on');
 
 function editPartita(id){
   const p=appData.partite.find(x=>x.id===id); if(!p)return;
@@ -791,7 +774,6 @@ function editPartita(id){
   };
 }
 $('modalCancel').onclick=()=>$('modal').classList.remove('on');
-$('statsClose').onclick=()=>$('modalPartitaStats').classList.remove('on');
 
 $('reset').onclick=async()=>{ if(confirm('Cancellare TUTTI i dati (partite e spese)?')){ appData={partite:[],spese:[]}; await salvaDati(); renderStorico(); renderSpese(); } };
 
@@ -1140,8 +1122,6 @@ $('exportSpeseBtn').onclick=()=>{
   toast('Esportato ✔');
 };
 
-/* ==================== TRACCIAMENTO GAME PER GAME ==================== */
-
 let trackState = null;
 
 function apriTracciamento(partitaId){
@@ -1213,7 +1193,7 @@ function renderTrackUI(){
     <span class="mat">${gameMat}</span>
   </div>`;
   
-  html+=`<div class="track-server">🎾 Prossimo servizio: <b class="${serverProssimo==='davide'?'davT':'matT'}">${serverProssimo==='davide'?'DAVIDE':'MATTEO'}</b></div>`;
+  html+=`<div class="track-server"> Prossimo servizio: <b class="${serverProssimo==='davide'?'davT':'matT'}">${serverProssimo==='davide'?'DAVIDE':'MATTEO'}</b></div>`;
   
   html+=`<div class="track-info">
     <div class="row"><span>Target:</span><span><span class="davT">${targetD}</span> - <span class="matT">${targetM}</span></span></div>
@@ -1237,7 +1217,7 @@ function renderTrackUI(){
     html+=`<button class="ghost" disabled style="opacity:.3">↶ Annulla ultimo</button>`;
   }
   if(reachedTarget){
-    html+=`<button class="btn" onclick="salvaTracking()" style="margin-top:0">💾 Salva tracciamento</button>`;
+    html+=`<button class="btn" onclick="salvaTracking()" style="margin-top:0"> Salva tracciamento</button>`;
   } else {
     html+=`<button class="ghost" disabled style="opacity:.3">💾 Salva (completa prima)</button>`;
   }
