@@ -353,52 +353,58 @@ async function handleAuth(){
 
 $('logoutBtn').onclick=()=>{auth.signOut();};
 
-// SOSTITUISCI IL BLOCCO auth.onAuthStateChanged ESISTENTE CON QUESTO:
-let unsubscribeShared = null; // Variabile per gestire il listener
+// ==================== AUTH E CARICAMENTO DATI STABILE ====================
+let unsubscribeShared = null; // Listener per i dati in tempo reale
 
 auth.onAuthStateChanged(async(user)=>{
   if(user){
     $('loginScreen').classList.add('hidden');
     $('appContent').style.display='block';
+    
+    // 1. Migra i dati vecchi UNA SOLA VOLTA se necessario
     await migrateOldData(user.uid);
     
-    // Avvia l'ascolto in tempo reale dei dati condivisi
-    listenToSharedData();
+    // 2. Avvia l'ascolto in tempo reale (sostituisce loadData)
+    startRealtimeListener();
   } else {
     $('loginScreen').classList.remove('hidden');
     $('appContent').style.display='none';
-    // Ferma l'ascolto quando si esce
-    if(unsubscribeShared) unsubscribeShared();
+    // Pulisci il listener quando esci
+    if(unsubscribeShared) {
+      unsubscribeShared();
+      unsubscribeShared = null;
+    }
   }
 });
 
-// NUOVA FUNZIONE: Ascolta i dati in tempo reale e li ricarica automaticamente
-function listenToSharedData(){
-  // Se c'era già un listener attivo, lo fermiamo prima di crearne uno nuovo
+function startRealtimeListener(){
+  // Ferma eventuali listener precedenti per evitare duplicati
   if(unsubscribeShared) unsubscribeShared();
   
+  // Ascolta il documento condiviso in tempo reale
   unsubscribeShared = db.collection('appdata').doc('shared-tennis-data')
     .onSnapshot((doc) => {
       if (doc.exists) {
         const data = doc.data();
-        // Aggiorna appData con i dati freschi dal DB
+        
+        // Aggiorna lo stato locale con i dati freschi dal DB
         appData.partite = data.partite || [];
         appData.spese = data.spese || [];
         
-        // Normalizza le date e inizializza tracking se mancante
+        // Normalizza date e tracking (essenziale per evitare errori UI)
         appData.partite.forEach(p=>{
           p.data = toISODate(p.data);
           if(!p.tracking) p.tracking = {};
         });
         appData.spese.forEach(s=>{ s.data = toISODate(s.data); });
         
-        // Rerenderizza tutto l'interfaccia con i nuovi dati
+        // Rerenderizza TUTTO l'interfaccia
         renderTutto();
         
-        // Nascondi loading se era visibile
+        // Nascondi loading spinner
         $('loading').style.display='none';
       } else {
-        // Documento non esiste (prima volta o cancellato)
+        // Primo accesso o dati cancellati
         appData = {partite:[], spese:[]};
         renderTutto();
         $('loading').style.display='none';
@@ -406,21 +412,24 @@ function listenToSharedData(){
     }, (error) => {
       console.error("Errore ascolto dati:", error);
       toast('Errore connessione dati');
+      $('loading').style.display='none';
     });
 }
 
-async function migrateOldData(uid){
+// ELIMINA LA VECCHIA FUNZIONE loadData() DAL CODICE - NON SERVE PIÙ
+// Se la trovi ancora nel file, cancellala completamente
+
+async function loadData(uid){
   try{
-    const oldDoc=await db.collection('appdata').doc('dati').get();
-    const sharedDoc=await db.collection('appdata').doc('shared-tennis-data').get();
-    if(oldDoc.exists&&!sharedDoc.exists&&oldDoc.data().partite&&oldDoc.data().partite.length>0){
-      await db.collection('appdata').doc('shared-tennis-data').set({
-        partite:oldDoc.data().partite||[],
-        spese:oldDoc.data().spese||[],
-        migratedAt:firebase.firestore.FieldValue.serverTimestamp()
-      });
-    }
-  }catch(e){console.error('Errore migrazione:',e);}
+    const doc=await db.collection('appdata').doc('shared-tennis-data').get();
+    if(doc.exists){
+      appData=doc.data();
+      appData.partite.forEach(p=>{p.data=toISODate(p.data);if(!p.tracking)p.tracking={};});
+      appData.spese.forEach(s=>{s.data=toISODate(s.data);});
+    } else appData={partite:[],spese:[]};
+  }catch(e){console.error('Errore caricamento:',e);toast('Errore caricamento dati');}
+  $('loading').style.display='none';
+  renderTutto();
 }
 
 async function salvaDati(){
