@@ -353,17 +353,61 @@ async function handleAuth(){
 
 $('logoutBtn').onclick=()=>{auth.signOut();};
 
+// SOSTITUISCI IL BLOCCO auth.onAuthStateChanged ESISTENTE CON QUESTO:
+let unsubscribeShared = null; // Variabile per gestire il listener
+
 auth.onAuthStateChanged(async(user)=>{
   if(user){
     $('loginScreen').classList.add('hidden');
     $('appContent').style.display='block';
     await migrateOldData(user.uid);
-    loadData(user.uid);
+    
+    // Avvia l'ascolto in tempo reale dei dati condivisi
+    listenToSharedData();
   } else {
     $('loginScreen').classList.remove('hidden');
     $('appContent').style.display='none';
+    // Ferma l'ascolto quando si esce
+    if(unsubscribeShared) unsubscribeShared();
   }
 });
+
+// NUOVA FUNZIONE: Ascolta i dati in tempo reale e li ricarica automaticamente
+function listenToSharedData(){
+  // Se c'era già un listener attivo, lo fermiamo prima di crearne uno nuovo
+  if(unsubscribeShared) unsubscribeShared();
+  
+  unsubscribeShared = db.collection('appdata').doc('shared-tennis-data')
+    .onSnapshot((doc) => {
+      if (doc.exists) {
+        const data = doc.data();
+        // Aggiorna appData con i dati freschi dal DB
+        appData.partite = data.partite || [];
+        appData.spese = data.spese || [];
+        
+        // Normalizza le date e inizializza tracking se mancante
+        appData.partite.forEach(p=>{
+          p.data = toISODate(p.data);
+          if(!p.tracking) p.tracking = {};
+        });
+        appData.spese.forEach(s=>{ s.data = toISODate(s.data); });
+        
+        // Rerenderizza tutto l'interfaccia con i nuovi dati
+        renderTutto();
+        
+        // Nascondi loading se era visibile
+        $('loading').style.display='none';
+      } else {
+        // Documento non esiste (prima volta o cancellato)
+        appData = {partite:[], spese:[]};
+        renderTutto();
+        $('loading').style.display='none';
+      }
+    }, (error) => {
+      console.error("Errore ascolto dati:", error);
+      toast('Errore connessione dati');
+    });
+}
 
 async function migrateOldData(uid){
   try{
@@ -377,19 +421,6 @@ async function migrateOldData(uid){
       });
     }
   }catch(e){console.error('Errore migrazione:',e);}
-}
-
-async function loadData(uid){
-  try{
-    const doc=await db.collection('appdata').doc('shared-tennis-data').get();
-    if(doc.exists){
-      appData=doc.data();
-      appData.partite.forEach(p=>{p.data=toISODate(p.data);if(!p.tracking)p.tracking={};});
-      appData.spese.forEach(s=>{s.data=toISODate(s.data);});
-    } else appData={partite:[],spese:[]};
-  }catch(e){console.error('Errore caricamento:',e);toast('Errore caricamento dati');}
-  $('loading').style.display='none';
-  renderTutto();
 }
 
 async function salvaDati(){
